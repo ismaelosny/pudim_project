@@ -1,7 +1,23 @@
+import os
+import subprocess
 import streamlit as st
 import pandas as pd
 import sys
-import os
+
+
+# 1. Configura uma variável de ambiente para forçar o Playwright a usar a pasta do projeto para o cache
+os.environ["PLAYWRIGHT_BROWSERS_PATH"] = os.path.abspath("./.playwright-cache")
+
+# 2. Verifica se o navegador já está instalado nessa pasta fixa. Se não estiver, instala.
+if not os.path.exists("./.playwright-cache"):
+    with st.spinner("Instalando navegadores na nuvem... (Isso ocorre apenas uma vez)"):
+        try:
+            # Cria a pasta e roda a instalação apontando para ela
+            os.makedirs("./.playwright-cache", exist_ok=True)
+            subprocess.run(["playwright", "install", "chromium"], check=True)
+            st.success("Navegador instalado com sucesso no servidor!")
+        except Exception as e:
+            st.error(f"Erro na instalação do navegador: {e}")
 
 # Permite que o Python encontre os scripts dentro da pasta 'src'
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "src")))
