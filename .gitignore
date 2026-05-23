@@ -1,0 +1,25 @@
+# Cache do Python (Arquivos compilados automaticamente)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Ambientes Virtuais Locais (Não devem ir para a nuvem)
+venv/
+.venv/
+env/
+
+# Configurações do Ambiente de Desenvolvimento (VS Code / PyCharm)
+.vscode/
+.idea/
+
+# Arquivos de Dados Locais e Logs do Sistema
+*.csv
+*.json
+*.log
+log_trafego_atacadao.json
+precos_leite_condensado.csv
+
+# Cache de Navegadores e Ferramentas do Playwright
+.playwright/
