@@ -1,0 +1,17 @@
+name: Cron de Atualização de Preços
+
+on:
+  schedule:
+    # Configuração em padrão Cron (Dispara todos os dias às 09:00 e às 17:00 no horário de Brasília)
+    # Como o GitHub roda em UTC, programamos para 12:00 e 20:00 UTC (3 horas a mais)
+    - cron: '0 12,20 * * *'
+  workflow_dispatch: # Permite que você clique para rodar manualmente pelo GitHub se quiser
+
+jobs:
+  atualizar_precos:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acordar e Atualizar o Hugging Face Space
+        run: |
+          # Faz uma requisição silenciosa que força o Space a acordar e rodar o pipeline
+          curl -s https://huggingface.co/spaces/ismaelosny/pudim_project/embed > /dev/null

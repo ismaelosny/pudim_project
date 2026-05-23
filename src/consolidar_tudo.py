@@ -176,7 +176,10 @@ def consolidar_pipeline():
 
     df_final = df_final[["Código de Barras", "Produto", "preco_atacadao", "preco_stok", "preco_desco"]]
     df_final.columns = ["Código de Barras", "Produto", "Atacadão", "Stok Center", "Desco"]
-    df_final["Data da Recolha"] = datetime.now().strftime("%d/%m/%Y às %H:%M:%S")
+    
+    from datetime import datetime, timedelta
+    horario_brasil = datetime.utcnow() - timedelta(hours=3)
+    df_final["Data da Recolha"] = horario_brasil.strftime("%d/%m/%Y às %H:%M:%S")
 
     # 5. Consolidação secundária de segurança por Código de Barras
     # Agrupa linhas com o mesmo código de barras válido e recupera o primeiro valor numérico não nulo
