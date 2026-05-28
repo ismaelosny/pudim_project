@@ -1,89 +1,61 @@
 import json
 import os
-import pandas as pd
 
 def tratar_dados_desco():
-    print("⏳ A iniciar o tratamento de dados do Desco Super&Atacado...")
+    arquivo_bruto = "dados_produtos_desco.json"
+    arquivo_limpo = "produtos_desco_tratados.json"
     
-    caminho = "dados_produtos_desco.json"
-    if not os.path.exists(caminho):
-        print(f"❌ Ficheiro '{caminho}' não encontrado.")
-        return None
+    if not os.path.exists(arquivo_bruto):
+        print(f"❌ Erro: Arquivo bruto '{arquivo_bruto}' não encontrado para tratamento.")
+        return
 
-    try:
-        with open(caminho, "r", encoding="utf-8") as f:
-            conteudo = json.load(f)
-    except Exception as e:
-        print(f"❌ Erro ao ler o ficheiro JSON: {e}")
-        return None
-
-    # 💡 MATANDO O PROBLEMA: Extração ultra-defensiva passo a passo
-    lista_produtos = []
-
-    if isinstance(conteudo, list):
-        # Se o JSON já for a lista direto no topo
-        lista_produtos = conteudo
-        
-    elif isinstance(conteudo, dict):
-        # Se for um dicionário, inspecionamos o que tem dentro do "data"
-        campo_data = conteudo.get("data")
-        campo_produtos = conteudo.get("produtos")
-
-        if isinstance(campo_data, list):
-            # Caso do Desco: {"data": [...]} -> data já é a lista!
-            lista_produtos = campo_data
-        elif isinstance(campo_data, dict):
-            # Caso do Stok: {"data": {"produtos": [...]}}
-            lista_produtos = campo_data.get("produtos", [])
-        elif isinstance(campo_produtos, list):
-            # Caso alternativo: {"produtos": [...]}
-            lista_produtos = campo_produtos
-
-    dados_limpos = []
-    print(f"🔍 Total de itens brutos encontrados na API do Desco: {len(lista_produtos)}")
-
-    for prod in lista_produtos:
-        if not isinstance(prod, dict):
-            continue
-            
-        nome_original = prod.get("descricao", "")
-        preco_original = prod.get("preco", "0.0")
-        
-        # --- FILTRO TÁTICO: Manter OBRIGATORIAMENTE Leite Condensado puro ---
-        nome_minusculo = nome_original.lower()
-        if "leite condensado" not in nome_minusculo or "creme de leite" in nome_minusculo:
-            continue
-
-        nome_limpo = " ".join(nome_original.strip().split())
-
+    print(f"📦 Iniciando o tratamento de dados do Desco...")
+    
+    with open(arquivo_bruto, "r", encoding="utf-8") as f:
+        conteudo = json.load(f)
+    
+    # Lista onde vamos guardar os produtos limpos
+    produtos_tratados = []
+    
+    # A API confirmou que os produtos ficam direto na lista dentro de 'data'
+    lista_produtos = conteudo.get("data", [])
+    
+    for item in lista_produtos:
         try:
-            preco_numerico = float(preco_original)
-        except ValueError:
-            preco_numerico = 0.0
+            nome = item.get("descricao", "Desconhecido").strip()
+            codigo_barras = item.get("codigo_barras", "Sem EAN")
+            
+            # Captura o preço regular de venda
+            preco_regular = float(item.get("preco", 0))
+            preco_final = preco_regular
+            
+            # Se o item tiver uma oferta ativa, validamos o preço promocional
+            if item.get("em_oferta") and item.get("oferta"):
+                oferta_info = item["oferta"]
+                # Pega o preço de oferta (atacado/faixa) se existir
+                preco_compra = oferta_info.get("preco_oferta") or oferta_info.get("menor_preco")
+                if preco_compra:
+                    preco_final = float(preco_compra)
+            
+            # Monta o dicionário padronizado do Pudim Project
+            produto_formatado = {
+                "produto": nome,
+                "codigo_barras": codigo_barras,
+                "preco": preco_final,
+                "supermercado": "Desco"
+            }
+            
+            produtos_tratados.append(produto_formatado)
+            
+        except Exception as e:
+            print(f"⚠️ Erro ao tratar item individual: {e}")
+            continue
 
-        dados_limpos.append({
-            "produto": nome_limpo,
-            "preco": preco_numerico
-        })
-
-    # Criar e ordenar o DataFrame
-    df_desco = pd.DataFrame(dados_limpos)
-    
-    if not df_desco.empty:
-        df_desco = df_desco.sort_values(by="preco", ascending=True)
-    
-    return df_desco
+    # Salva o resultado final tratado
+    with open(arquivo_limpo, "w", encoding="utf-8") as f:
+        json.dump(produtos_tratados, f, indent=4, ensure_ascii=False)
+        
+    print(f"✅ Sucesso! {len(produtos_tratados)} produtos do Desco foram tratados e salvos em '{arquivo_limpo}'.")
 
 if __name__ == "__main__":
-    df_resultado = tratar_dados_desco()
-    
-    if df_resultado is not None and not df_resultado.empty:
-        print("\n✅ Dados do Desco tratados com sucesso!")
-        print("--------------------------------------------------")
-        print(df_resultado.to_string(index=False))
-        print("--------------------------------------------------")
-        
-        df_resultado.to_csv("desco_tratado.csv", index=False, encoding="utf-8")
-        print("💾 Checkpoint gravado em 'desco_tratado.csv'")
-    else:
-        print("⚠️ Nenhum leite condensado passou pelos filtros.")
+    tratar_dados_desco()
